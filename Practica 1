@@ -1,0 +1,89 @@
+#Practice #1: "Hanoi Towers"
+#Authors: Gutierrez Garcia Diego Rodrigo & Cruz Huante Aristofanes <3
+.data
+#if the number of disc that you want to stre is even, move the first disc to the auxiliar tower, 
+#else, move the first disc to the destination tower
+.text
+main:
+addi $s0, $zero,  8  		#Number of discs in the Origin Tower
+addi $t1, $zero,  0x10010000 	#Register with t1's direction
+addi $t2, $zero,  0x10010020	#Register with t2's direction
+addi $t3, $zero,  0x10010040	#Register with t3's direction
+add  $a0, $zero,  $s0		#Copy of n
+add  $a3, $zero,  $zero		#Auxiliar flag to jump in the switching function
+add  $a2, $zero,  $zero         #Auxiliar flag2 to jump in the switch2 function
+j    fill_t1			#jump to the label fill_t1
+
+#this function fill the tower 1 with n discs, filling it from the bottom to the top
+fill_t1:
+beq  $a0, $zero, recursive	#branch if s0 equals zero, if n == 0, jump to recursive, else continue
+sw   $a0, 0($t1)		#stores the disc in the tower 
+addi $a0, $a0, -1		#n = n -1
+addi $t1, $t1, 4		#moves the stack pointer to load the next byte
+j    fill_t1			#jump to label fill_t1
+
+#this function calls the function hanoi_towers once the tower 1 is filled and the discs are ready to be stored  
+recursive:
+jal hanoi_towers		#jump to the label hanoi_towers and return to the next line
+j   exit			#jump to label exit
+
+#parameter: n-1, initial, destination, auxiliar
+hanoi_towers:
+bne  $s0, 1, not_one		#branch if s0 is not equal to 1, if s0 != 1, jump to not_one, else continue
+addi $t1, $t1, -4		#moves one byte to the top of the origin tower
+lw   $a1, 0($t1)		#uses the auxiliar a1 to load the bottom of the t1
+sw   $a1, 0($t3)		#uses the auxiliar a1 to store the value of the bottom of t1 in t3
+addi $t3, $t3, 4		#moves one byte to the bottom of the destination tower 
+sw   $zero, 0($t1)		#store a 0 in the top of the origin tower
+jr   $ra			#jump to the direction stored in ra
+
+not_one:
+addi $sp, $sp, -8		#save 2 bytes of memory to store data
+sw   $s0,4($sp)			#stores the value of n in the stack
+sw   $ra,0($sp)			#stores the returning direction in the stack
+addi $s0, $s0, -1		#decrease n
+
+switch:
+add  $a1, $zero, $t2		#save t2's direction in the auxiliar a1
+add  $t2, $zero, $t3		#moves the t3's direction to t2
+add  $t3, $zero, $a1		#moves the a1's direction to t3
+bne  $a3, $zero, restore  	#if the auxiliar flag != 0, jump to the label restore, else continue
+
+jal  hanoi_towers		#jump to the label hanoi_towers and return to the next line
+addi $a3, $zero, 1		#axuiliar flag = 1
+j   switch			#jump to the label switch
+
+restore:
+add  $a3, $zero, $zero		#auxiliar flag = 0
+lw   $s0, 4($sp)		#load n from the top of the stack	
+lw   $ra, 0($sp)		#load ra direction from the stack	
+addi $sp, $sp, 8		#add 8 to the stack pointer
+
+addi $t1, $t1,-4		#moves one byte to the bottom of t1
+lw   $a1, 0($t1)		#load  the lowest disc from t1 
+sw   $a1, 0($t3)		#store the lowest disc in t3
+addi $t3, $t3, 4		#moves one byte to the top of t3
+	
+sw   $zero,0($t1)		#save a zero in the top of t1
+addi $sp,$sp,-8			#saves 2 bytes in the stack
+sw   $s0, 4($sp)		#store n in the stack
+sw   $ra, 0($sp)		#store ra direction in the stack
+
+switch2:
+add  $a1, $zero, $t1 		#saves t1's direction in the auxiliar a1 
+add  $t1, $zero, $t2		#moves t2's direction to t1 
+add  $t2, $zero, $a1		#moves t1's direction to t2
+addi $s0, $s0, -1		#n = n - 1
+jal  hanoi_towers		#jump to the label hanoi_towers to make the next move
+
+add  $a1, $zero, $t1 		#saves t1's direction in the auxiliar a1 
+add  $t1, $zero, $t2		#moves t2's direction to t1 
+add  $t2, $zero, $a1		#moves t1's direction to t2
+addi $s0, $s0, -1		#n = n - 1
+
+lw   $ra,0($sp)			#loads ra direction from the stack
+lw   $s0,4($sp)			#loads n  value from the satck
+addi $sp, $sp,8			#moves the stack pointer 2 bytes to the top of the stack
+jr   $ra			#jump to ra
+
+exit:
